@@ -8,19 +8,32 @@ import base64
 import tensorflow as tf
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing import image
+from fastapi.middleware.cors import CORSMiddleware
 
 
 app = FastAPI(title="Chicken Disease Predictor")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # ganti domain frontend jika production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Load the trained model
 # Load pickled model
 # with open('model_cnn.pkl', 'rb') as file:
 #     model = pickle.load(file)
-model = load_model("cnn_model.h5")
+model = None
 
 IMG_SIZE = (150, 150)
-CLASS_NAMES = ["coccidiosis", "healthy", "new_castle_disease", "salmonella"]
+CLASS_NAMES = ["Coccidiosis", "Healthy (Sehat)", "New Castle Disease (Tetelo)", "Salmonella"]
 
+@app.on_event("startup")
+def load_model():
+    global model
+    model = tf.keras.models.load_model("model/cnn_model.h5")
 
 def preprocess_image(image_bytes):
     image = Image.open(io.BytesIO(image_bytes)).convert("RGB")

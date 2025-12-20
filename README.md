@@ -15,6 +15,7 @@ A Streamlit-based web application that uses Convolutional Neural Networks (CNN) 
 - **Visual Analysis**: Shows detailed probability distributions using matplotlib charts
 - **Recommendations**: Provides actionable advice based on detection results
 - **User-Friendly Interface**: Clean, responsive UI built with Streamlit and custom CSS
+- **Data Source**: Dataset from Kaggle (https://www.kaggle.com/datasets/efoeetienneblavo/chicken-disease-dataset)
 
 ## Prerequisites
 
