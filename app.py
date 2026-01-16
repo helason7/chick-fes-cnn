@@ -1,91 +1,75 @@
+import time
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
-from fastapi.responses import JSONResponse
-from PIL import Image
-import io
-import numpy as np
-import base64
-import tensorflow as tf
-from tensorflow.keras.models import load_model
-from tensorflow.keras.preprocessing import image
+APP_START_TIME = time.time()
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, HTTPException
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from app_logging.logger import setup_logger
+
+from helpers.error_handler import (
+    http_exception_handler,
+    validation_exception_handler,
+    general_exception_handler,
+    rate_limit_exception_handler
+)
+
+from helpers.clip_gate import load_clip
+from helpers.cnn_predict import load_cnn
+from api.v1.predict import router as predict_v1_router
+from api.health import router as health_v1_router
+
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+
+from helpers.limiter import limiter
+
+@asynccontextmanager
+async def lifespan(app):
+    # ===== STARTUP =====
+
+    load_clip()
+    load_cnn()
+    print("✅ Models loaded")
+
+    yield  # aplikasi berjalan di sini
+
+    # ===== SHUTDOWN =====
+    print("🛑 Application shutting down")
 
 
-app = FastAPI(title="Chicken Disease Predictor")
+app = FastAPI(
+    title="Chicken Feces Disease Predictor API",
+    version="1.0.0",
+    lifespan=lifespan
+)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # ganti domain frontend jika production
-    allow_credentials=True,
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Load the trained model
-# Load pickled model
-# with open('model_cnn.pkl', 'rb') as file:
-#     model = pickle.load(file)
-model = None
+app.add_exception_handler(HTTPException, http_exception_handler)
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
+app.add_exception_handler(Exception, general_exception_handler)
+app.add_exception_handler(RateLimitExceeded, rate_limit_exception_handler)
 
-IMG_SIZE = (150, 150)
-CLASS_NAMES = ["Coccidiosis", "Healthy (Sehat)", "New Castle Disease (Tetelo)", "Salmonella"]
+app.state.limiter = limiter
+app.add_middleware(SlowAPIMiddleware)
 
-@app.on_event("startup")
-def load_model():
-    global model
-    model = tf.keras.models.load_model("model/cnn_model.h5")
+logger = setup_logger()
 
-def preprocess_image(image_bytes):
-    image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-    image = image.resize(IMG_SIZE)
-    image = np.array(image) / 255.0
-    image = np.expand_dims(image, axis=0)
-    return image
+# Register API v1
+app.include_router(predict_v1_router)
+app.include_router(health_v1_router)
 
 
 @app.get("/")
-def root(): 
-    print("Chicken Disease Predictor is running.")
-    return {"message": "Chicken Disease Predictor is running."}
-
-
-@app.post("/predict")
-async def predict(file: UploadFile = File(...)):
-    try:
-        image_bytes = await file.read()
-        image = preprocess_image(image_bytes)
-
-        predictions = model.predict(image)
-        confidence = float(np.max(predictions))
-        class_index = int(np.argmax(predictions))
-        class_name = CLASS_NAMES[class_index]
-
-        return {
-            "class_index": class_index,
-            "class": class_name,
-            "confidence": round(confidence, 4)
-        }
-
-    except Exception as e:
-        return JSONResponse(
-            status_code=400,
-            content={"error": str(e)}
-        )
-
-    try:
-        # Decode base64 image
-        image_data = base64.b64decode(request.image)
-        pil_image = Image.open(io.BytesIO(image_data))
-
-        # Class names
-        class_names = ['Coccidiosis', 'Healthy', 'New Castle Disease', 'Salmonella']
-
-        predicted_class, confidence, probabilities = predict_disease(pil_image, model, class_names)
-
-        return {
-            "predicted_class": predicted_class,
-            "confidence": float(confidence),
-            "probabilities": probabilities.tolist()
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+def root():
+    return {
+        "message": "Chicken Feces Disease Predictor API",
+        "available_versions": ["v1"]
+    }
