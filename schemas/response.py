@@ -26,6 +26,7 @@ class ProductRecommendation(BaseModel):
 class PredictionData(BaseModel):
     class_index: int
     class_name: str
+    slug: str
     confidence: float
     advice: List[str]
     recommendations: List[ProductRecommendation]
