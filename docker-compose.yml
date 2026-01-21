@@ -1,0 +1,26 @@
+version: "3.9"
+
+services:
+  chick-fes-api:
+    container_name: chick-fes-api
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: chick-fes-api:latest
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - APP_ENV=production
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 2G

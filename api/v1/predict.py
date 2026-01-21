@@ -2,9 +2,10 @@ from fastapi import APIRouter, UploadFile, File, HTTPException, Request
 from app_logging.logger import generate_request_id, setup_logger
 import os, io
 from PIL import Image, UnidentifiedImageError
+from api.v1.recommendation import get_recommendation
 
 from config.config import (
-    CLASS_MAP, DISEASE_ADVICE, CNN_MIN_CONFIDENCE, 
+    CLASS_MAP, SLUG_MAP, DISEASE_ADVICE, CNN_MIN_CONFIDENCE, 
     MAX_UPLOAD_SIZE_BYTES, ALLOWED_MIME_TYPES, ALLOWED_EXTENSIONS
 )
 from helpers.clip_gate import is_chicken_feces
@@ -182,6 +183,7 @@ async def predict(
     class_idx, confidence = predict_disease(image_bytes)
     label_info = CLASS_MAP.get(class_idx, {})
     class_name = label_info.get(lang, label_info.get("en", "Unknown"))
+    slug_name = SLUG_MAP.get(class_idx)
 
     # 3️⃣ Confidence check
     if confidence < CNN_MIN_CONFIDENCE:
@@ -203,7 +205,8 @@ async def predict(
             data={
                 "predicted_class_index": class_idx,
                 "predicted_class_name": class_name,
-                "confidence": round(confidence, 4)
+                "confidence": round(confidence, 4),
+                "slug": slug_name
             },
             meta={
                 "language": lang,
@@ -227,6 +230,12 @@ async def predict(
         }
     )
 
+    # 2️⃣ Ambil rekomendasi
+    rec = get_recommendation(
+        disease_slug=slug_name,
+        confidence=round(confidence, 4)
+    )
+
     return api_response(
         status="accepted",
         message=get_message("prediction_success", lang),
@@ -234,7 +243,10 @@ async def predict(
             "class_index": class_idx,
             "class_name": class_name,
             "confidence": round(confidence, 4),
-            "advice": advice
+            "slug": slug_name,
+            "advice": advice,
+            "recommendations": rec["recommendations"],
+            "disclaimer": "Rekomendasi bersifat pendukung dan bukan pengganti dokter hewan."
         },
         meta={
             "language": lang,

@@ -5,12 +5,31 @@ from pydantic import BaseModel
 # =========================
 # DATA
 # =========================
+class AffiliateLink(BaseModel):
+    platform: str
+    url: str
+
+class ProductRecommendation(BaseModel):
+    name: str
+    product_id: int
+    category: str
+    reason: str
+    priority: int
+    affiliate: Optional[AffiliateLink]
+
+# class ProductRecommendation(BaseModel):
+#     name: str
+#     category: str
+#     reason: str
+#     priority: int
 
 class PredictionData(BaseModel):
     class_index: int
     class_name: str
     confidence: float
     advice: List[str]
+    recommendations: List[ProductRecommendation]
+    disclaimer: str
 
 
 class UncertainData(BaseModel):

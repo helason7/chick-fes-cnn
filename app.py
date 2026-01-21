@@ -18,7 +18,9 @@ from helpers.error_handler import (
 from helpers.clip_gate import load_clip
 from helpers.cnn_predict import load_cnn
 from api.v1.predict import router as predict_v1_router
+from api.v1.recommendation import router as recommendation_v1_router
 from api.health import router as health_v1_router
+from api.v1.track import router as track_v1_router
 
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
@@ -64,6 +66,8 @@ logger = setup_logger()
 
 # Register API v1
 app.include_router(predict_v1_router)
+app.include_router(recommendation_v1_router)
+app.include_router(track_v1_router)
 app.include_router(health_v1_router)
 
 

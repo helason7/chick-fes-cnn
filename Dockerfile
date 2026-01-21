@@ -1,25 +1,46 @@
-FROM python:3.9-slim
+# ===============================
+# Base Image
+# ===============================
+FROM python:3.10-slim
 
-WORKDIR /app
+# ===============================
+# Environment
+# ===============================
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
-# Install system dependencies for TensorFlow
+# ===============================
+# System Dependencies
+# ===============================
 RUN apt-get update && apt-get install -y \
     build-essential \
+    libgl1 \
+    libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install Python dependencies
+# ===============================
+# Workdir
+# ===============================
+WORKDIR /app
+
+# ===============================
+# Install Python Dependencies
+# ===============================
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt
 
-# Copy application files
-COPY app.py .
-COPY model/ model/
+# ===============================
+# Copy Application Code
+# ===============================
+COPY . .
 
-# Set default port if not provided
-ENV PORT=7860
+# ===============================
+# Expose Port
+# ===============================
+EXPOSE 8000
 
-# Expose the port that Streamlit will run on
-EXPOSE $PORT
-
-# Run FastAPI
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "7860"]
+# ===============================
+# Run Application
+# ===============================
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]

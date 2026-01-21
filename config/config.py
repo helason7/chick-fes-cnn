@@ -42,6 +42,13 @@ CLASS_MAP = {
     3: {"id": "Salmonella", "en": "Salmonella"}
 }
 
+SLUG_MAP = {
+    0: "coccidiosis",
+    1: "healthy",
+    2: "tetelo",
+    3: "salmonella"
+}
+
 # Advice per disease
 DISEASE_ADVICE = {
     0: {
